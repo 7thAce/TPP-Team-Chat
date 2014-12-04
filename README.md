@@ -7,6 +7,17 @@ Future plans: Chat colors, better differentianting of top betters, good stuff li
 
 See the screenshots that will be here eventually.
 
+
+
+
+
+
+
+
+
+
+
+
 Licensing:
 In short: If you're gonna do anything with the code or ideas presented here, just make sure it in some way points back here as credit.  Don't take the code/ideas here and pass them as your own.  
 
