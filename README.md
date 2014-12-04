@@ -1,20 +1,21 @@
 Twitch Plays Pokemon - PBR Team Chat
 Created by 7thAce
 
-This is a program that splits TPP chat into the teams that they bet on, allowing for easier strategizing as well as move % movement in real time.
+To Download: Click on TPPTeamChat.jar and hit View Raw, then the download should prompt.
+
+This is a program thatsplits TPP chat into the teams that they bet on, allowing for easier strategizing as well as move % movement in real time.
 
 Future plans: Chat colors, better differentianting of top betters, good stuff like that.
 
-See the screenshots that will be here eventually.
+Screenshot (v1.0): http://i.imgur.com/6z3v90c.png
 
 
-
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
 
 
 
