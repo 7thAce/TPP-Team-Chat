@@ -47,7 +47,7 @@ public class Core extends PircBot
         gui = new TeamChatGUI();
 
         try {
-            connect("irc.twitch.tv", port, "<pass removed, use your own name/pass for open source use>");
+            connect("irc.twitch.tv", port, "");
 
         } catch (IOException e) {
             System.out.println("Unable to connect to IRC.");
