@@ -135,13 +135,24 @@ public class Core extends PircBot
         {
             if (messageArgs.length >= 3)
             {
+                String team;
                 int betCount;
+
                 try {
                 betCount = Integer.parseInt(messageArgs[1]);
+                team = messageArgs[2];
                 } catch (Exception e)
-                { return; }
+                {
+                    try {
+                        betCount = Integer.parseInt(messageArgs[2]);
+                        team = messageArgs[1];
+                    }
+                    catch (Exception e1)
+                    {
+                        return;
+                    }
+                }
 
-                String team = messageArgs[2];
                 if (!team.equalsIgnoreCase("red") && !team.equalsIgnoreCase("blue"))
                     return;
                 if (team.equalsIgnoreCase("red"))
