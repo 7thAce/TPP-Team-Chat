@@ -1,9 +1,6 @@
 import java.awt.*;
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 
 public class TeamChatGUI extends JFrame {
     public TeamChatGUI() {
@@ -157,7 +154,7 @@ public class TeamChatGUI extends JFrame {
                     new Insets(0, 0, 0, 0), 0, 0));
 
             //---- blueText ----
-            blueText.setText("Blue Total Active Bets: 0");
+            blueText.setText("Waiting for new game...");
             bluePanel.add(blueText, new GridBagConstraints(0, 4, 3, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                     new Insets(0, 0, 0, 0), 0, 0));
@@ -284,7 +281,7 @@ public class TeamChatGUI extends JFrame {
                     new Insets(0, 0, 0, 0), 0, 0));
 
             //---- redText ----
-            redText.setText("Red Total Active Bets: 0");
+            redText.setText("Waiting for new game...");
             redPanel.add(redText, new GridBagConstraints(0, 4, 3, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                     new Insets(0, 0, 0, 0), 0, 0));
@@ -307,30 +304,46 @@ public class TeamChatGUI extends JFrame {
         setVisible(true);
     }
 
-    public void writeToRedBox(String message)
+    public void writeToRedBox(String message, Color messageColor, boolean isBolded)
     {
         StyledDocument doc = redBox.getStyledDocument();
         Style style = redBox.addStyle("style", null);
-        //StyleConstants.setForeground(style, color);
+        StyleConstants.setForeground(style, messageColor);
+
+        SimpleAttributeSet attributes = new SimpleAttributeSet();
+
+        if (isBolded)
+            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, true);
+        else
+            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, false);
+
         StyleConstants.setForeground(style, Color.BLACK);
         redBox.setCaretPosition(doc.getLength());
         try {
-            doc.insertString(redBox.getCaretPosition(), message, style);
+            doc.insertString(redBox.getCaretPosition(), message, attributes);
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
         redBox.setCaretPosition(doc.getLength());
     }
 
-    public void writeToBlueBox(String message)
+    public void writeToBlueBox(String message, Color messageColor, boolean isBolded)
     {
         StyledDocument doc = blueBox.getStyledDocument();
         Style style = blueBox.addStyle("style", null);
-        //StyleConstants.setForeground(style, color);
+        StyleConstants.setForeground(style, messageColor);
+
+        SimpleAttributeSet attributes = new SimpleAttributeSet();
+
+        if (isBolded)
+            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, true);
+        else
+            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, false);
+
         StyleConstants.setForeground(style, Color.BLACK);
         blueBox.setCaretPosition(doc.getLength());
         try {
-            doc.insertString(blueBox.getCaretPosition(), message, style);
+            doc.insertString(blueBox.getCaretPosition(), message, attributes);
         } catch (BadLocationException e) {
             e.printStackTrace();
         }

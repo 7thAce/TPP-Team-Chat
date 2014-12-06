@@ -1,42 +1,27 @@
 import org.jibble.pircbot.*;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.HashMap;
 
-public class Core extends PircBot
+public class Core extends PircBot implements ActionListener
 {
     private boolean inGame;
     private boolean acceptingBets;
-
-    private ArrayList<String> teamRed = new ArrayList<String>();
-    private ArrayList<String> teamBlue = new ArrayList<String>();
     private HashMap<String, String> userMoveMap = new HashMap<String, String>();
     private HashMap<String, Integer> userBetMap = new HashMap<String, Integer>();
 
-    private int redA;
-    private int redB;
-    private int redC;
-    private int redD;
+    private TeamChatGUI gui;
+    private Game currentGame;
+    private Timer waitForBets;
 
-    private int blueA;
-    private int blueB;
-    private int blueC;
-    private int blueD;
-
-    private double redPctA;
-    private double redPctB;
-    private double redPctC;
-    private double redPctD;
-
-    private double bluePctA;
-    private double bluePctB;
-    private double bluePctC;
-    private double bluePctD;
-
-    private int redActiveBetTotal;
-    private int blueActiveBetTotal;
-
-    TeamChatGUI gui;
+    private final List<String> moveArray = Arrays.asList("a", "b", "c", "d", "-");
+    private final Color[] colorArray = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.BLACK};
 
     public Core() { }
     public Core(String username)
@@ -59,41 +44,31 @@ public class Core extends PircBot
         joinChannel("#twitchplayspokemon");
         inGame = false;
         acceptingBets = false;
+        //waitForBets = new Timer(30000, this);
+        //waitForBets.setInitialDelay(0);
+    }
+
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        //acceptingBets = true;
+        //waitForBets.stop();
+        //System.out.println("Now accepting bets!");
     }
 
     public void onMessage(String channel, String sender, String login, String hostname, String message)
     {
         if (message.endsWith("won the match!") && sender.equalsIgnoreCase("tppinfobot"))
         {
+            //waitForBets.start();
+
             inGame = true;
-            acceptingBets = true;
-            teamRed.clear();
-            teamBlue.clear();
             userBetMap.clear();
             userMoveMap.clear();
 
-            redA = 0;
-            redB = 0;
-            redC = 0;
-            redD = 0;
+            currentGame = new Game();
 
-            blueA = 0;
-            blueB = 0;
-            blueC = 0;
-            blueD = 0;
-
-            redPctA = 0.0;
-            redPctB = 0.0;
-            redPctC = 0.0;
-            redPctD = 0.0;
-
-            bluePctA = 0.0;
-            bluePctB = 0.0;
-            bluePctC = 0.0;
-            bluePctD = 0.0;
-
-            redActiveBetTotal = 0;
-            blueActiveBetTotal = 0;
+            //GUI Reset
             gui.redBox.setText("");
             gui.blueBox.setText("");
 
@@ -117,8 +92,8 @@ public class Core extends PircBot
             gui.bluePctC.setText("0%");
             gui.bluePctD.setText("0%");
 
-            gui.blueText.setText("Blue Total Active Bets: " + blueActiveBetTotal);
-            gui.redText.setText("Red Total Active Bets: " + redActiveBetTotal);
+            gui.blueText.setText("Blue Total Active Bets: None");
+            gui.redText.setText("Red Total Active Bets: None");
 
         }
 
@@ -131,7 +106,9 @@ public class Core extends PircBot
             return;
 
         String[] messageArgs = message.split(" ");
-        if (messageArgs[0].equalsIgnoreCase("!bet") && (!teamRed.contains(sender) && !teamBlue.contains(sender)) && acceptingBets && inGame)
+
+        /* Check for bets */
+        if (messageArgs[0].equalsIgnoreCase("!bet") && acceptingBets && inGame)
         {
             if (messageArgs.length >= 3)
             {
@@ -155,21 +132,62 @@ public class Core extends PircBot
 
                 if (!team.equalsIgnoreCase("red") && !team.equalsIgnoreCase("blue"))
                     return;
-                if (team.equalsIgnoreCase("red"))
+
+                if (betCount < 1 || betCount > 9999999)
+                    return;
+
+                //Betting on red, hasn't bet on blue yet (allows for increasing bets)
+                if (team.equalsIgnoreCase("red") && !currentGame.getBlueTeam().getUserList().contains(sender))
                 {
-                    teamRed.add(sender);
-                    userMoveMap.put(sender, "-");
+                    if (!currentGame.getRedTeam().getUserList().contains(sender))
+                    {
+                        //Hasn't bet yet
+                        userMoveMap.put(sender, "-");
+                        currentGame.getRedTeam().addToTeam(sender);
+                        userBetMap.put(sender, betCount);
+                        currentGame.getRedTeam().addTotalBet(betCount);
+                    }
+                    else
+                    {
+                        //Check for increasing bet
+                        if (userBetMap.get(sender) < betCount)
+                        {
+                            currentGame.getRedTeam().addTotalBet(betCount - userBetMap.get(sender));
+                            userBetMap.put(sender, betCount);
+                        }
+                    }
                     userBetMap.put(sender, betCount);
+                    //if (betCount > userBetMap.get(currentGame.getRedTeam().getTopBetter()))
+                        //currentGame.getRedTeam().setTopBetter(sender);
                 }
-                if (team.equalsIgnoreCase("blue"))
+
+                //Betting on blue, hasn't bet on red yet
+                if (team.equalsIgnoreCase("blue") && !currentGame.getRedTeam().getUserList().contains(sender))
                 {
-                    teamBlue.add(sender);
-                    userMoveMap.put(sender, "-");
+                    if (!currentGame.getBlueTeam().getUserList().contains(sender))
+                    {
+                        //Hasn't bet yet
+                        userMoveMap.put(sender, "-");
+                        currentGame.getBlueTeam().addToTeam(sender);
+                        userBetMap.put(sender, betCount);
+                        currentGame.getBlueTeam().addTotalBet(betCount);
+                    }
+                    else
+                    {
+                        //Check for increasing bet
+                        if (userBetMap.get(sender) <= betCount)
+                            userBetMap.put(sender, betCount);
+                    }
                     userBetMap.put(sender, betCount);
+                    //if (betCount > userBetMap.get(currentGame.getBlueTeam().getTopBetter()))
+                        //currentGame.getBlueTeam().setTopBetter(sender);
                 }
             }
         }
-        if (teamRed.contains(sender))
+
+        //Check moves
+        //Red team
+        if (currentGame.getRedTeam().getUserList().contains(sender))
         {
             if (message.startsWith("!move"))
             {
@@ -179,95 +197,119 @@ public class Core extends PircBot
                     String move = moveArgs[1];
                     if (move.equalsIgnoreCase("a") || move.equalsIgnoreCase("b") || move.equalsIgnoreCase("c") || move.equalsIgnoreCase("d") || move.equalsIgnoreCase("-"))
                     {
+                        //
                         String prevMove = userMoveMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("a"))
-                            redA -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("b"))
-                            redB -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("c"))
-                            redC -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("d"))
-                            redD -= userBetMap.get(sender);
 
-                        if (move.equalsIgnoreCase("a"))
-                            redA += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("b"))
-                            redB += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("c"))
-                            redC += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("d"))
-                            redD += userBetMap.get(sender);
+                        if (!move.equals("-"))
+                        {
+                            currentGame.getRedTeam().getMoveList().get(move.compareTo("a")).addBet(userBetMap.get(sender));
+                            currentGame.getRedTeam().addActiveBet(userBetMap.get(sender));
+                        }
+
+                        if(!prevMove.equals("-"))
+                        {
+                            currentGame.getRedTeam().getMoveList().get(move.compareTo("a")).removeBet(userBetMap.get(sender));
+                            currentGame.getRedTeam().removeActiveBet(userBetMap.get(sender));
+                        }
 
                         userMoveMap.put(sender, move);
 
+                        for (int i = 0; i < 4; i++)
+                        {
+                            currentGame.getRedTeam().getMoveList().get(i).calcPercent(currentGame.getRedTeam().getActiveBet());
+                        }
+                        gui.redPctA.setText(Math.round(currentGame.getRedTeam().getMoveList().get(0).getBetPercent() * 100) + "%");
+                        gui.redPctB.setText(Math.round(currentGame.getRedTeam().getMoveList().get(1).getBetPercent() * 100) + "%");
+                        gui.redPctC.setText(Math.round(currentGame.getRedTeam().getMoveList().get(2).getBetPercent() * 100) + "%");
+                        gui.redPctD.setText(Math.round(currentGame.getRedTeam().getMoveList().get(3).getBetPercent() * 100) + "%");
+
+                        gui.redBarA.setValue((int)Math.round(currentGame.getRedTeam().getMoveList().get(0).getBetPercent() * 100));
+                        gui.redBarB.setValue((int)Math.round(currentGame.getRedTeam().getMoveList().get(1).getBetPercent() * 100));
+                        gui.redBarC.setValue((int)Math.round(currentGame.getRedTeam().getMoveList().get(2).getBetPercent() * 100));
+                        gui.redBarD.setValue((int)Math.round(currentGame.getRedTeam().getMoveList().get(3).getBetPercent() * 100));
+                    }
+                }
+                if (messageArgs.length > 2)
+                {
+                    if (userBetMap.get(sender) > 1000)
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                    else
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+                }
+            }
+            else
+            {
+                if (userBetMap.get(sender) > 1000)
+                    gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                else
+                    gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+            }
+
+            gui.redText.setText("Red Total Active Bets: " + currentGame.getRedTeam().getActiveBet() + " / " + currentGame.getRedTeam().getTotalBet());
+        }
+
+        //Blue team
+        if (currentGame.getBlueTeam().getUserList().contains(sender))
+        {
+            if (message.startsWith("!move"))
+            {
+                String[] moveArgs = message.split(" ");
+                if (moveArgs.length >= 2)
+                {
+                    String move = moveArgs[1];
+                    if (move.equalsIgnoreCase("a") || move.equalsIgnoreCase("b") || move.equalsIgnoreCase("c") || move.equalsIgnoreCase("d") || move.equalsIgnoreCase("-"))
+                    {
+                        //
+                        String prevMove = userMoveMap.get(sender);
+
+                        if (!move.equals("-"))
+                        {
+                            currentGame.getBlueTeam().getMoveList().get(move.compareTo("a")).addBet(userBetMap.get(sender));
+                            currentGame.getBlueTeam().addActiveBet(userBetMap.get(sender));
+                        }
+
+                        if(!prevMove.equals("-"))
+                        {
+                            currentGame.getBlueTeam().getMoveList().get(move.compareTo("a")).removeBet(userBetMap.get(sender));
+                            currentGame.getBlueTeam().removeActiveBet(userBetMap.get(sender));
+                        }
+
+                        userMoveMap.put(sender, move);
                         System.out.println(sender + " switched from " + prevMove + " to " + move);
+
+                        for (int i = 0; i < 4; i++)
+                        {
+                            currentGame.getBlueTeam().getMoveList().get(i).calcPercent(currentGame.getBlueTeam().getActiveBet());
+                        }
+                        gui.bluePctA.setText(Math.round(currentGame.getBlueTeam().getMoveList().get(0).getBetPercent() * 100) + "%");
+                        gui.bluePctB.setText(Math.round(currentGame.getBlueTeam().getMoveList().get(1).getBetPercent() * 100) + "%");
+                        gui.bluePctC.setText(Math.round(currentGame.getBlueTeam().getMoveList().get(2).getBetPercent() * 100) + "%");
+                        gui.bluePctD.setText(Math.round(currentGame.getBlueTeam().getMoveList().get(3).getBetPercent() * 100) + "%");
+
+                        gui.blueBarA.setValue((int)Math.round(currentGame.getBlueTeam().getMoveList().get(0).getBetPercent() * 100));
+                        gui.blueBarB.setValue((int)Math.round(currentGame.getBlueTeam().getMoveList().get(1).getBetPercent() * 100));
+                        gui.blueBarC.setValue((int)Math.round(currentGame.getBlueTeam().getMoveList().get(2).getBetPercent() * 100));
+                        gui.blueBarD.setValue((int)Math.round(currentGame.getBlueTeam().getMoveList().get(3).getBetPercent() * 100));
                     }
-                    redActiveBetTotal = redA + redB + redC + redD;
-                    redPctA = redA * 1.0 / redActiveBetTotal;
-                    redPctB = redB * 1.0 / redActiveBetTotal;
-                    redPctC = redC * 1.0 / redActiveBetTotal;
-                    redPctD = redD * 1.0 / redActiveBetTotal;
-                    gui.redPctA.setText(Math.round(redPctA * 100) + "%");
-                    gui.redPctB.setText(Math.round(redPctB * 100) + "%");
-                    gui.redPctC.setText(Math.round(redPctC * 100) + "%");
-                    gui.redPctD.setText(Math.round(redPctD * 100) + "%");
-                    gui.redBarA.setValue((int)Math.round(redPctA * 100));
-                    gui.redBarB.setValue((int)Math.round(redPctB * 100));
-                    gui.redBarC.setValue((int)Math.round(redPctC * 100));
-                    gui.redBarD.setValue((int)Math.round(redPctD * 100));
                 }
-            }
-            gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n");
-            gui.redText.setText("Red Total Active Bets: " + redActiveBetTotal);
-        }
-        if(teamBlue.contains(sender))
-        {
-            if (message.startsWith("!move"))
-            {
-                String[] moveArgs = message.split(" ");
-                if (moveArgs.length >= 2)
+                if (messageArgs.length > 2)
                 {
-                    String move = moveArgs[1];
-                    if (move.equalsIgnoreCase("a") || move.equalsIgnoreCase("b") || move.equalsIgnoreCase("c") || move.equalsIgnoreCase("d") || move.equalsIgnoreCase("-"))
-                    {
-                        String prevMove = userMoveMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("a"))
-                            blueA -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("b"))
-                            blueB -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("c"))
-                            blueC -= userBetMap.get(sender);
-                        if (prevMove.equalsIgnoreCase("d"))
-                            blueD -= userBetMap.get(sender);
-
-                        if (move.equalsIgnoreCase("a"))
-                            blueA += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("b"))
-                            blueB += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("c"))
-                            blueC += userBetMap.get(sender);
-                        if (move.equalsIgnoreCase("d"))
-                            blueD += userBetMap.get(sender);
-
-                        userMoveMap.put(sender, move);
-                    }
-                    blueActiveBetTotal = blueA + blueB + blueC + blueD;
-                    bluePctA = blueA * 1.0 / blueActiveBetTotal;
-                    bluePctB = blueB * 1.0 / blueActiveBetTotal;
-                    bluePctC = blueC * 1.0 / blueActiveBetTotal;
-                    bluePctD = blueD * 1.0 / blueActiveBetTotal;
-                    gui.bluePctA.setText(Math.round(bluePctA * 100) + "%");
-                    gui.bluePctB.setText(Math.round(bluePctB * 100) + "%");
-                    gui.bluePctC.setText(Math.round(bluePctC * 100) + "%");
-                    gui.bluePctD.setText(Math.round(bluePctD * 100) + "%");
-                    gui.blueBarA.setValue((int)Math.round(bluePctA * 100));
-                    gui.blueBarB.setValue((int)Math.round(bluePctB * 100));
-                    gui.blueBarC.setValue((int)Math.round(bluePctC * 100));
-                    gui.blueBarD.setValue((int)Math.round(bluePctD * 100));
+                    if (userBetMap.get(sender) > 1000)
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                    else
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
                 }
             }
-            gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n");
-            gui.blueText.setText("Blue Total Active Bets: " + blueActiveBetTotal);
+            else
+            {
+                System.out.println(colorArray[moveArray.indexOf(userMoveMap.get(sender))]);
+                if (userBetMap.get(sender) > 1000)
+                    gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                else
+                    gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+            }
+
+            gui.blueText.setText("Blue Total Active Bets: " + currentGame.getBlueTeam().getActiveBet() + " / " + currentGame.getBlueTeam().getTotalBet());
         }
     }
 }
