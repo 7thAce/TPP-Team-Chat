@@ -63,6 +63,7 @@ public class Core extends PircBot implements ActionListener
             //waitForBets.start();
 
             inGame = true;
+            acceptingBets = true;
             userBetMap.clear();
             userMoveMap.clear();
 
