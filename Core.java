@@ -5,7 +5,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.HashMap;
 
@@ -19,9 +21,10 @@ public class Core extends PircBot implements ActionListener
     private TeamChatGUI gui;
     private Game currentGame;
     private Timer waitForBets;
+    private int lastGameStartTime;
 
-    private final List<String> moveArray = Arrays.asList("a", "b", "c", "d", "-");
-    private final Color[] colorArray = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.BLACK};
+    private List<String> moveArray = Arrays.asList("a", "b", "c", "d", "-");
+    private Color[] colorArray = {new Color(255,0,0), new Color(0,0,255), new Color(0,255,0), new Color(255,255,0), new Color(0,0,0)};
 
     public Core() { }
     public Core(String username)
@@ -35,35 +38,44 @@ public class Core extends PircBot implements ActionListener
             connect("irc.twitch.tv", port, "");
 
         } catch (IOException e) {
-            System.out.println("Unable to connect to IRC.");
+            gui.redText.setText("[Error] Unable to connect to IRC.");
+            gui.blueText.setText("[Error] Unable to connect to IRC.");
             e.printStackTrace();
         } catch (IrcException e) {
-            System.out.println("Unable to connect to twitch.");
+            gui.redText.setText("[Error] Unable to connect to Twitch.");
+            gui.blueText.setText("[Error] Unable to connect to Twitch.");
             e.printStackTrace();
         }
         joinChannel("#twitchplayspokemon");
         inGame = false;
         acceptingBets = false;
-        //waitForBets = new Timer(30000, this);
-        //waitForBets.setInitialDelay(0);
+        waitForBets = new Timer(35000, this);
+        lastGameStartTime = -1;
     }
 
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        //acceptingBets = true;
-        //waitForBets.stop();
-        //System.out.println("Now accepting bets!");
+        acceptingBets = true;
+        waitForBets.stop();
     }
 
     public void onMessage(String channel, String sender, String login, String hostname, String message)
     {
         if (message.endsWith("won the match!") && sender.equalsIgnoreCase("tppinfobot"))
         {
-            //waitForBets.start();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+            int minutes = Integer.parseInt(sdf.format(new Date()).split(" ")[1].split(":")[1]);
+            if (minutes < lastGameStartTime)
+                waitForBets.setDelay(300000);
+            else
+                waitForBets.setDelay(35000);
+            waitForBets.start();
+
+            lastGameStartTime = minutes;
 
             inGame = true;
-            acceptingBets = true;
+            //acceptingBets = true;
             userBetMap.clear();
             userMoveMap.clear();
 
@@ -190,9 +202,13 @@ public class Core extends PircBot implements ActionListener
         //Red team
         if (currentGame.getRedTeam().getUserList().contains(sender))
         {
-            if (message.startsWith("!move"))
+            if (!message.contains(" "))
+                return;
+
+            String[] moveArgs = message.split(" ");
+            if (moveArgs[0].equalsIgnoreCase("!move"))
             {
-                String[] moveArgs = message.split(" ");
+
                 if (moveArgs.length >= 2)
                 {
                     String move = moveArgs[1];
@@ -209,7 +225,7 @@ public class Core extends PircBot implements ActionListener
 
                         if(!prevMove.equals("-"))
                         {
-                            currentGame.getRedTeam().getMoveList().get(move.compareTo("a")).removeBet(userBetMap.get(sender));
+                            currentGame.getRedTeam().getMoveList().get(prevMove.compareTo("a")).removeBet(userBetMap.get(sender));
                             currentGame.getRedTeam().removeActiveBet(userBetMap.get(sender));
                         }
 
@@ -240,10 +256,13 @@ public class Core extends PircBot implements ActionListener
             }
             else
             {
-                if (userBetMap.get(sender) > 1000)
-                    gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
-                else
-                    gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+                if (!message.equalsIgnoreCase("!balance"))
+                {
+                    if (userBetMap.get(sender) > 1000)
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                    else
+                        gui.writeToRedBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+                }
             }
 
             gui.redText.setText("Red Total Active Bets: " + currentGame.getRedTeam().getActiveBet() + " / " + currentGame.getRedTeam().getTotalBet());
@@ -252,9 +271,12 @@ public class Core extends PircBot implements ActionListener
         //Blue team
         if (currentGame.getBlueTeam().getUserList().contains(sender))
         {
-            if (message.startsWith("!move"))
+            if (!message.contains(" "))
+                return;
+
+            String[] moveArgs = message.split(" ");
+            if (moveArgs[0].equalsIgnoreCase("!move"))
             {
-                String[] moveArgs = message.split(" ");
                 if (moveArgs.length >= 2)
                 {
                     String move = moveArgs[1];
@@ -271,12 +293,12 @@ public class Core extends PircBot implements ActionListener
 
                         if(!prevMove.equals("-"))
                         {
-                            currentGame.getBlueTeam().getMoveList().get(move.compareTo("a")).removeBet(userBetMap.get(sender));
+                            currentGame.getBlueTeam().getMoveList().get(prevMove.compareTo("a")).removeBet(userBetMap.get(sender));
                             currentGame.getBlueTeam().removeActiveBet(userBetMap.get(sender));
                         }
 
                         userMoveMap.put(sender, move);
-                        System.out.println(sender + " switched from " + prevMove + " to " + move);
+                        //ystem.out.println(sender + " switched from " + prevMove + " to " + move);
 
                         for (int i = 0; i < 4; i++)
                         {
@@ -303,11 +325,13 @@ public class Core extends PircBot implements ActionListener
             }
             else
             {
-                System.out.println(colorArray[moveArray.indexOf(userMoveMap.get(sender))]);
-                if (userBetMap.get(sender) > 1000)
-                    gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
-                else
-                    gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+                if (!message.equalsIgnoreCase("!balance"))
+                {
+                    if (userBetMap.get(sender) > 1000)
+                        gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], true);
+                    else
+                        gui.writeToBlueBox(sender + " (" + userBetMap.get(sender) + "): " + message + "\n", colorArray[moveArray.indexOf(userMoveMap.get(sender))], false);
+                }
             }
 
             gui.blueText.setText("Blue Total Active Bets: " + currentGame.getBlueTeam().getActiveBet() + " / " + currentGame.getBlueTeam().getTotalBet());

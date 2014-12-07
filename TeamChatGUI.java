@@ -2,6 +2,8 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.text.*;
 
+import static javax.swing.text.StyleConstants.setForeground;
+
 public class TeamChatGUI extends JFrame {
     public TeamChatGUI() {
         initComponents();
@@ -61,7 +63,6 @@ public class TeamChatGUI extends JFrame {
             label1.setText("A");
             label1.setForeground(Color.red);
             label1.setHorizontalAlignment(SwingConstants.CENTER);
-            label1.setBackground(Color.black);
             label1.setFont(new Font("Arial Black", Font.BOLD, 11));
             bluePanel.add(label1, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -85,7 +86,6 @@ public class TeamChatGUI extends JFrame {
             label2.setText("B");
             label2.setHorizontalAlignment(SwingConstants.CENTER);
             label2.setForeground(Color.blue);
-            label2.setBackground(Color.black);
             label2.setFont(new Font("Arial Black", Font.BOLD, 11));
             bluePanel.add(label2, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -109,7 +109,6 @@ public class TeamChatGUI extends JFrame {
             label3.setText("C");
             label3.setHorizontalAlignment(SwingConstants.CENTER);
             label3.setForeground(Color.green);
-            label3.setBackground(Color.black);
             label3.setFont(new Font("Arial Black", Font.BOLD, 11));
             bluePanel.add(label3, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -133,7 +132,6 @@ public class TeamChatGUI extends JFrame {
             label4.setText("D");
             label4.setHorizontalAlignment(SwingConstants.CENTER);
             label4.setForeground(Color.yellow);
-            label4.setBackground(Color.black);
             label4.setFont(new Font("Arial Black", Font.BOLD, 11));
             bluePanel.add(label4, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -188,7 +186,6 @@ public class TeamChatGUI extends JFrame {
             label5.setText("A");
             label5.setForeground(Color.red);
             label5.setHorizontalAlignment(SwingConstants.CENTER);
-            label5.setBackground(Color.black);
             label5.setFont(new Font("Arial Black", Font.BOLD, 11));
             redPanel.add(label5, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH,
@@ -306,6 +303,7 @@ public class TeamChatGUI extends JFrame {
 
     public void writeToRedBox(String message, Color messageColor, boolean isBolded)
     {
+        //System.out.println(messageColor);
         StyledDocument doc = redBox.getStyledDocument();
         Style style = redBox.addStyle("style", null);
         StyleConstants.setForeground(style, messageColor);
@@ -314,10 +312,16 @@ public class TeamChatGUI extends JFrame {
 
         if (isBolded)
             attributes.addAttribute(StyleConstants.CharacterConstants.Bold, true);
-        else
-            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, false);
 
-        StyleConstants.setForeground(style, Color.BLACK);
+
+
+
+
+        /*SimpleAttributeSet highAlert = new SimpleAttributeSet(boldBlue);
+        StyleConstants.setFontSize(highAlert, 18);
+        StyleConstants.setItalic(highAlert, true);
+        StyleConstants.setForeground(highAlert, Color.red);  */
+
         redBox.setCaretPosition(doc.getLength());
         try {
             doc.insertString(redBox.getCaretPosition(), message, attributes);
@@ -337,10 +341,7 @@ public class TeamChatGUI extends JFrame {
 
         if (isBolded)
             attributes.addAttribute(StyleConstants.CharacterConstants.Bold, true);
-        else
-            attributes.addAttribute(StyleConstants.CharacterConstants.Bold, false);
 
-        StyleConstants.setForeground(style, Color.BLACK);
         blueBox.setCaretPosition(doc.getLength());
         try {
             doc.insertString(blueBox.getCaretPosition(), message, attributes);
