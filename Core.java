@@ -54,28 +54,18 @@ public class Core extends PircBot implements ActionListener
     }
 
 
-    @Override
+    /*@Override
     public void actionPerformed(ActionEvent e) {
         acceptingBets = true;
         waitForBets.stop();
-    }
+    }*/
 
     public void onMessage(String channel, String sender, String login, String hostname, String message)
     {
-        if (message.endsWith("won the match!") && sender.equalsIgnoreCase("tppinfobot"))
+        if (message.equals("A new match is about to begin!") && sender.equalsIgnoreCase("tppinfobot"))
         {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-            int minutes = Integer.parseInt(sdf.format(new Date()).split(" ")[1].split(":")[1]);
-            if (minutes < lastGameStartTime)
-                waitForBets.setDelay(300000);
-            else
-                waitForBets.setDelay(35000);
-            waitForBets.start();
-
-            lastGameStartTime = minutes;
-
             inGame = true;
-            //acceptingBets = true;
+            acceptingBets = true;
             userBetMap.clear();
             userMoveMap.clear();
 
